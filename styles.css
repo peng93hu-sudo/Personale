@@ -1,0 +1,243 @@
+:root {
+  --bg: #f5f1e8;
+  --surface: #ffffff;
+  --ink: #2a2419;
+  --muted: #7a6f5f;
+  --accent: #8b5a2b;
+  --accent-soft: #d9b88a;
+  --danger: #b03a2e;
+  --border: #d8cdb8;
+  --table: #b08654;
+  --table-dark: #6b4423;
+  --chair: #4a6fa5;
+  --chair-dark: #2c4870;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  height: 100%;
+}
+
+header {
+  padding: 1rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+
+.subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  height: calc(100vh - 80px);
+}
+
+.palette {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.palette h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 1rem 0 0.5rem;
+}
+
+.palette h2:first-child { margin-top: 0; }
+
+.item-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.palette-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: grab;
+  font-size: 0.75rem;
+  text-align: center;
+  user-select: none;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.palette-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.palette-item:active { cursor: grabbing; }
+
+.preview {
+  width: 40px;
+  height: 40px;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.controls button {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+
+.controls button:hover { background: var(--accent-soft); }
+.controls button.danger { color: var(--danger); }
+.controls button.danger:hover { background: var(--danger); color: white; }
+
+.stats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.stats li {
+  padding: 0.25rem 0;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed var(--border);
+}
+
+.room {
+  position: relative;
+  background: #faf6ed;
+  border: 3px solid var(--accent);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.room-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(139, 90, 43, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(139, 90, 43, 0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.room.drag-over { background: #f0e6d0; }
+
+.hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 1rem;
+  pointer-events: none;
+  font-style: italic;
+}
+
+.room.has-items .hint { display: none; }
+
+.furniture {
+  position: absolute;
+  cursor: move;
+  transition: box-shadow 0.15s, transform 0.05s;
+  transform-origin: center center;
+}
+
+.furniture:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
+.furniture.selected { box-shadow: 0 0 0 3px var(--accent); }
+
+/* Shapes — usable in palette previews and in the room */
+.table-round {
+  background: var(--table);
+  border: 2px solid var(--table-dark);
+  border-radius: 50%;
+}
+
+.table-rect {
+  background: var(--table);
+  border: 2px solid var(--table-dark);
+  border-radius: 4px;
+}
+
+.table-square {
+  background: var(--table);
+  border: 2px solid var(--table-dark);
+  border-radius: 4px;
+}
+
+.chair {
+  background: var(--chair);
+  border: 2px solid var(--chair-dark);
+  border-radius: 4px;
+  position: relative;
+}
+
+.chair::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 25%;
+  background: var(--chair-dark);
+  border-radius: 2px 2px 0 0;
+}
+
+.armchair {
+  background: var(--chair);
+  border: 2px solid var(--chair-dark);
+  border-radius: 6px;
+  position: relative;
+}
+
+.armchair::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  background: var(--chair-dark);
+  border-radius: 4px 4px 0 0;
+}
+
+.stool {
+  background: var(--chair);
+  border: 2px solid var(--chair-dark);
+  border-radius: 50%;
+}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arredamento — Sedie e Tavoli</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Pianificatore Arredamento</h1>
+    <p class="subtitle">Trascina sedie e tavoli nella stanza per disporli</p>
+  </header>
+
+  <main>
+    <aside class="palette">
+      <h2>Catalogo</h2>
+      <div class="item-list">
+        <div class="palette-item" draggable="true" data-type="table-round">
+          <div class="preview table-round"></div>
+          <span>Tavolo rotondo</span>
+        </div>
+        <div class="palette-item" draggable="true" data-type="table-rect">
+          <div class="preview table-rect"></div>
+          <span>Tavolo rettangolare</span>
+        </div>
+        <div class="palette-item" draggable="true" data-type="table-square">
+          <div class="preview table-square"></div>
+          <span>Tavolo quadrato</span>
+        </div>
+        <div class="palette-item" draggable="true" data-type="chair">
+          <div class="preview chair"></div>
+          <span>Sedia</span>
+        </div>
+        <div class="palette-item" draggable="true" data-type="armchair">
+          <div class="preview armchair"></div>
+          <span>Poltrona</span>
+        </div>
+        <div class="palette-item" draggable="true" data-type="stool">
+          <div class="preview stool"></div>
+          <span>Sgabello</span>
+        </div>
+      </div>
+
+      <h2>Azioni</h2>
+      <div class="controls">
+        <button id="rotate-btn" type="button">Ruota selezionato (R)</button>
+        <button id="delete-btn" type="button">Elimina selezionato (Canc)</button>
+        <button id="clear-btn" type="button" class="danger">Svuota stanza</button>
+      </div>
+
+      <h2>Statistiche</h2>
+      <ul class="stats">
+        <li>Tavoli: <strong id="stat-tables">0</strong></li>
+        <li>Sedute: <strong id="stat-seats">0</strong></li>
+        <li>Totale oggetti: <strong id="stat-total">0</strong></li>
+      </ul>
+    </aside>
+
+    <section class="room" id="room" aria-label="Stanza">
+      <div class="room-grid"></div>
+      <p class="hint">Trascina un elemento dal catalogo qui dentro</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
