@@ -7,62 +7,95 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
-    <h1>Pianificatore Arredamento</h1>
-    <p class="subtitle">Trascina sedie e tavoli nella stanza per disporli</p>
-  </header>
+  <!-- Schermata di accesso -->
+  <div id="auth-screen" class="auth-screen">
+    <form id="login-form" class="auth-card" autocomplete="off">
+      <h1>Pianificatore Arredamento</h1>
+      <p class="auth-subtitle">Accedi per iniziare a disporre i mobili</p>
 
-  <main>
-    <aside class="palette">
-      <h2>Catalogo</h2>
-      <div class="item-list">
-        <div class="palette-item" draggable="true" data-type="table-round">
-          <div class="preview table-round"></div>
-          <span>Tavolo rotondo</span>
-        </div>
-        <div class="palette-item" draggable="true" data-type="table-rect">
-          <div class="preview table-rect"></div>
-          <span>Tavolo rettangolare</span>
-        </div>
-        <div class="palette-item" draggable="true" data-type="table-square">
-          <div class="preview table-square"></div>
-          <span>Tavolo quadrato</span>
-        </div>
-        <div class="palette-item" draggable="true" data-type="chair">
-          <div class="preview chair"></div>
-          <span>Sedia</span>
-        </div>
-        <div class="palette-item" draggable="true" data-type="armchair">
-          <div class="preview armchair"></div>
-          <span>Poltrona</span>
-        </div>
-        <div class="palette-item" draggable="true" data-type="stool">
-          <div class="preview stool"></div>
-          <span>Sgabello</span>
-        </div>
+      <label for="username">Nome utente</label>
+      <input id="username" name="username" type="text" required autocomplete="username" />
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required autocomplete="current-password" />
+
+      <p id="auth-error" class="auth-error" role="alert" hidden></p>
+
+      <button type="submit" class="auth-submit">Entra</button>
+
+      <p class="auth-note">
+        Demo: il primo accesso con un nuovo nome utente crea l'account.
+        I dati restano solo in questo browser — non è un'autenticazione reale.
+      </p>
+    </form>
+  </div>
+
+  <!-- Applicazione (mostrata dopo l'accesso) -->
+  <div id="app" hidden>
+    <header>
+      <div class="header-titles">
+        <h1>Pianificatore Arredamento</h1>
+        <p class="subtitle">Trascina sedie e tavoli nella stanza per disporli</p>
       </div>
-
-      <h2>Azioni</h2>
-      <div class="controls">
-        <button id="rotate-btn" type="button">Ruota selezionato (R)</button>
-        <button id="delete-btn" type="button">Elimina selezionato (Canc)</button>
-        <button id="clear-btn" type="button" class="danger">Svuota stanza</button>
+      <div class="user-bar">
+        <span class="user-greeting">Ciao, <strong id="current-user"></strong></span>
+        <button id="logout-btn" type="button">Esci</button>
       </div>
+    </header>
 
-      <h2>Statistiche</h2>
-      <ul class="stats">
-        <li>Tavoli: <strong id="stat-tables">0</strong></li>
-        <li>Sedute: <strong id="stat-seats">0</strong></li>
-        <li>Totale oggetti: <strong id="stat-total">0</strong></li>
-      </ul>
-    </aside>
+    <main>
+      <aside class="palette">
+        <h2>Catalogo</h2>
+        <div class="item-list">
+          <div class="palette-item" draggable="true" data-type="table-round">
+            <div class="preview table-round"></div>
+            <span>Tavolo rotondo</span>
+          </div>
+          <div class="palette-item" draggable="true" data-type="table-rect">
+            <div class="preview table-rect"></div>
+            <span>Tavolo rettangolare</span>
+          </div>
+          <div class="palette-item" draggable="true" data-type="table-square">
+            <div class="preview table-square"></div>
+            <span>Tavolo quadrato</span>
+          </div>
+          <div class="palette-item" draggable="true" data-type="chair">
+            <div class="preview chair"></div>
+            <span>Sedia</span>
+          </div>
+          <div class="palette-item" draggable="true" data-type="armchair">
+            <div class="preview armchair"></div>
+            <span>Poltrona</span>
+          </div>
+          <div class="palette-item" draggable="true" data-type="stool">
+            <div class="preview stool"></div>
+            <span>Sgabello</span>
+          </div>
+        </div>
 
-    <section class="room" id="room" aria-label="Stanza">
-      <div class="room-grid"></div>
-      <p class="hint">Trascina un elemento dal catalogo qui dentro</p>
-    </section>
-  </main>
+        <h2>Azioni</h2>
+        <div class="controls">
+          <button id="rotate-btn" type="button">Ruota selezionato (R)</button>
+          <button id="delete-btn" type="button">Elimina selezionato (Canc)</button>
+          <button id="clear-btn" type="button" class="danger">Svuota stanza</button>
+        </div>
 
+        <h2>Statistiche</h2>
+        <ul class="stats">
+          <li>Tavoli: <strong id="stat-tables">0</strong></li>
+          <li>Sedute: <strong id="stat-seats">0</strong></li>
+          <li>Totale oggetti: <strong id="stat-total">0</strong></li>
+        </ul>
+      </aside>
+
+      <section class="room" id="room" aria-label="Stanza">
+        <div class="room-grid"></div>
+        <p class="hint">Trascina un elemento dal catalogo qui dentro</p>
+      </section>
+    </main>
+  </div>
+
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

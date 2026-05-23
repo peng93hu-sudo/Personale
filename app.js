@@ -166,4 +166,10 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+document.addEventListener("fp:logout", () => {
+  room.querySelectorAll(".furniture").forEach((el) => el.remove());
+  selected = null;
+  updateStats();
+});
+
 updateStats();
