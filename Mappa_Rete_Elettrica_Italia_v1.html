@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mappa Rete Elettrica Italia · 意大利电网地图 v1</title>
+<meta name="description" content="全国 380/220 kV 骨干网 + HVDC 直流互联,含 Lazio · Marche · Sardegna · Basilicata · Sicilia 五个优先大区。Leaflet 暗色主题,三标签(变电站/发电/线路)+ 大区筛选 + 搜索。" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c232c; --border:#2a323d;
+    --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);}
+  #app{display:grid;grid-template-columns:320px 1fr;grid-template-rows:auto 1fr;height:100vh;}
+  header{grid-column:1 / 3;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;padding:.6rem 1rem;background:var(--panel);border-bottom:1px solid var(--border);}
+  header h1{font-size:1.05rem;margin:0;color:var(--accent);white-space:nowrap;}
+  .badge{font-size:.7rem;padding:.1rem .45rem;border:1px solid var(--accent);color:var(--accent);border-radius:999px;}
+  .toolbar{margin-left:auto;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;}
+  .toolbar input,.toolbar select{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.4rem .55rem;font-size:.82rem;}
+  .toolbar input{width:190px;}
+  aside{background:var(--panel);border-right:1px solid var(--border);overflow-y:auto;padding:.75rem;}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.85rem;}
+  .stat{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:.45rem .55rem;}
+  .stat b{display:block;font-size:1.05rem;font-variant-numeric:tabular-nums;}
+  .stat span{font-size:.7rem;color:var(--muted);}
+  .tabs{display:flex;gap:.25rem;margin-bottom:.6rem;}
+  .tabs button{flex:1;background:var(--panel2);color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:.45rem 0;font-size:.82rem;cursor:pointer;}
+  .tabs button.active{background:var(--accent);color:#04101f;border-color:var(--accent);font-weight:600;}
+  .pane{display:none;}
+  .pane.active{display:block;}
+  .pane h3{font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:.4rem 0 .45rem;display:flex;justify-content:space-between;align-items:center;}
+  .master-toggle{font-size:.68rem;color:var(--accent);cursor:pointer;background:none;border:none;}
+  .layer{display:flex;align-items:center;gap:.55rem;padding:.32rem .4rem;border-radius:6px;cursor:pointer;user-select:none;font-size:.83rem;}
+  .layer:hover{background:var(--panel2);}
+  .layer.off{opacity:.42;}
+  .layer input{accent-color:var(--accent);}
+  .sw{width:13px;height:13px;border-radius:50%;flex:0 0 auto;border:1px solid rgba(255,255,255,.35);}
+  .sw.line{height:4px;border-radius:2px;width:18px;}
+  .sw.dash{background-image:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px);}
+  .layer .nm{flex:1;}
+  .layer .ct{font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .note{font-size:.7rem;color:var(--muted);line-height:1.45;border-top:1px solid var(--border);padding-top:.6rem;margin-top:.7rem;}
+  #map{width:100%;height:100%;background:#0b0e13;}
+  .leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border-radius:8px;}
+  .leaflet-popup-tip{background:var(--panel);}
+  .leaflet-popup-content{margin:.6rem .8rem;font-size:.82rem;line-height:1.45;}
+  .leaflet-popup-content b{color:var(--accent);}
+  .leaflet-container a.leaflet-popup-close-button{color:var(--muted);}
+  @media (max-width:780px){
+    #app{grid-template-columns:1fr;grid-template-rows:auto auto 60vh;}
+    aside{border-right:none;border-bottom:1px solid var(--border);max-height:38vh;}
+    header h1{font-size:.95rem;}
+    .toolbar input{width:130px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Mappa Rete Elettrica Italia</h1>
+    <span class="badge">意大利电网地图 · v1</span>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="搜索 / Cerca nome…" autocomplete="off" />
+      <select id="region"></select>
+    </div>
+  </header>
+
+  <aside>
+    <div class="stats" id="stats"></div>
+    <div class="tabs">
+      <button data-tab="sub" class="active">变电站</button>
+      <button data-tab="plant">发电</button>
+      <button data-tab="line">线路</button>
+    </div>
+
+    <div class="pane active" data-pane="sub">
+      <h3>变电站 / Stazioni &amp; Cabine <button class="master-toggle" data-cat="sub">全部开/关</button></h3>
+      <div id="ctl-sub"></div>
+    </div>
+    <div class="pane" data-pane="plant">
+      <h3>发电厂 / Impianti di generazione <button class="master-toggle" data-cat="plant">全部开/关</button></h3>
+      <div id="ctl-plant"></div>
+    </div>
+    <div class="pane" data-pane="line">
+      <h3>输电线路 / Linee di trasmissione <button class="master-toggle" data-cat="line">全部开/关</button></h3>
+      <div id="ctl-line"></div>
+    </div>
+
+    <p class="note">
+      数据为指示性、用于规划示意;坐标与容量为近似值,需以 Terna / e-distribuzione 官方数据校核。<br>
+      Dati indicativi a scopo illustrativo; coordinate e potenze approssimate, da verificare con le fonti ufficiali Terna / distributori.<br>
+      <b>v1</b> · 全国 380/220 kV 骨干网 + 优先大区(Lazio · Marche · Sardegna · Basilicata · Sicilia)。
+    </p>
+  </aside>
+
+  <div id="map"></div>
+</div>
+
+<script>
+/* ====================== DATA ====================== */
+/* type SUBSTATIONS: SE380 / SE220 / CP   (cat = "sub") */
+const SUBSTATIONS = [
+  // --- SE 380 kV — backbone RTN (nazionale) ---
+  {n:"SE Rondissone",     t:"SE380", kv:380, region:"Piemonte",       prov:"TO", lat:45.24, lng:7.97},
+  {n:"SE Trino",          t:"SE380", kv:380, region:"Piemonte",       prov:"VC", lat:45.20, lng:8.30},
+  {n:"SE Piossasco",      t:"SE380", kv:380, region:"Piemonte",       prov:"TO", lat:44.99, lng:7.42, note:"Hub 380 kV + terminale HVDC Italia–Francia"},
+  {n:"SE Lacchiarella",   t:"SE380", kv:380, region:"Lombardia",      prov:"MI", lat:45.32, lng:9.14},
+  {n:"SE Baggio",         t:"SE380", kv:380, region:"Lombardia",      prov:"MI", lat:45.46, lng:9.08},
+  {n:"SE Cassano d'Adda", t:"SE380", kv:380, region:"Lombardia",      prov:"MI", lat:45.53, lng:9.52},
+  {n:"SE Turbigo",        t:"SE380", kv:380, region:"Lombardia",      prov:"MI", lat:45.53, lng:8.73},
+  {n:"SE La Casella",     t:"SE380", kv:380, region:"Emilia-Romagna", prov:"PC", lat:45.05, lng:9.45},
+  {n:"SE Caorso",         t:"SE380", kv:380, region:"Emilia-Romagna", prov:"PC", lat:45.07, lng:9.88},
+  {n:"SE Martignone",     t:"SE380", kv:380, region:"Emilia-Romagna", prov:"BO", lat:44.52, lng:11.16},
+  {n:"SE Forlì",          t:"SE380", kv:380, region:"Emilia-Romagna", prov:"FC", lat:44.22, lng:12.02},
+  {n:"SE Redipuglia",     t:"SE380", kv:380, region:"Friuli-V.G.",    prov:"GO", lat:45.85, lng:13.49},
+  {n:"SE Camin",          t:"SE380", kv:380, region:"Veneto",         prov:"PD", lat:45.40, lng:11.93},
+  {n:"SE Sandrigo",       t:"SE380", kv:380, region:"Veneto",         prov:"VI", lat:45.66, lng:11.58},
+  {n:"SE Calenzano",      t:"SE380", kv:380, region:"Toscana",        prov:"FI", lat:43.86, lng:11.16},
+  {n:"SE Suvereto",       t:"SE380", kv:380, region:"Toscana",        prov:"LI", lat:43.08, lng:10.68, note:"Terminale HVDC SACOI"},
+  {n:"SE Roma Nord",      t:"SE380", kv:380, region:"Lazio",          prov:"RM", lat:42.05, lng:12.55},
+  {n:"SE Roma Sud",       t:"SE380", kv:380, region:"Lazio",          prov:"RM", lat:41.78, lng:12.70},
+  {n:"SE Latina",         t:"SE380", kv:380, region:"Lazio",          prov:"LT", lat:41.43, lng:12.93, note:"Terminale HVDC SAPEI (Sardegna)"},
+  {n:"SE Garigliano",     t:"SE380", kv:380, region:"Campania",       prov:"CE", lat:41.26, lng:13.83},
+  {n:"SE Montecorvino",   t:"SE380", kv:380, region:"Campania",       prov:"SA", lat:40.69, lng:14.97, note:"Approdo previsto Tyrrhenian Link"},
+  {n:"SE Benevento II",   t:"SE380", kv:380, region:"Campania",       prov:"BN", lat:41.18, lng:14.85},
+  {n:"SE Bisaccia",       t:"SE380", kv:380, region:"Campania",       prov:"AV", lat:41.01, lng:15.38},
+  {n:"SE Foggia",         t:"SE380", kv:380, region:"Puglia",         prov:"FG", lat:41.46, lng:15.55},
+  {n:"SE Brindisi",       t:"SE380", kv:380, region:"Puglia",         prov:"BR", lat:40.50, lng:18.02},
+  {n:"SE Taranto",        t:"SE380", kv:380, region:"Puglia",         prov:"TA", lat:40.52, lng:17.25},
+  {n:"SE Matera",         t:"SE380", kv:380, region:"Basilicata",     prov:"MT", lat:40.66, lng:16.60},
+  {n:"SE Rossano",        t:"SE380", kv:380, region:"Calabria",       prov:"CS", lat:39.60, lng:16.65},
+  {n:"SE Laino",          t:"SE380", kv:380, region:"Calabria",       prov:"CS", lat:39.95, lng:15.97},
+  {n:"SE Feroleto",       t:"SE380", kv:380, region:"Calabria",       prov:"CZ", lat:38.97, lng:16.39},
+  {n:"SE Rizziconi",      t:"SE380", kv:380, region:"Calabria",       prov:"RC", lat:38.41, lng:15.96, note:"Collegamento 380 kV Sorgente–Rizziconi (Stretto)"},
+  {n:"SE Sorgente",       t:"SE380", kv:380, region:"Sicilia",        prov:"ME", lat:38.18, lng:15.40},
+  {n:"SE Paternò",        t:"SE380", kv:380, region:"Sicilia",        prov:"CT", lat:37.57, lng:14.90},
+  {n:"SE Chiaramonte Gulfi",t:"SE380",kv:380,region:"Sicilia",        prov:"RG", lat:37.03, lng:14.70},
+  {n:"SE Partinico",      t:"SE380", kv:380, region:"Sicilia",        prov:"PA", lat:38.05, lng:13.18},
+  {n:"SE Codrongianos",   t:"SE380", kv:380, region:"Sardegna",       prov:"SS", lat:40.65, lng:8.70, note:"Terminale HVDC SAPEI + SACOI"},
+  {n:"SE Selargius",      t:"SE380", kv:380, region:"Sardegna",       prov:"CA", lat:39.26, lng:9.16, note:"Approdo previsto Tyrrhenian Link"},
+  // --- SE 220 kV ---
+  {n:"SE Vado Ligure",    t:"SE220", kv:220, region:"Liguria",        prov:"SV", lat:44.27, lng:8.43},
+  {n:"SE Bussolengo",     t:"SE220", kv:220, region:"Veneto",         prov:"VR", lat:45.47, lng:10.85},
+  {n:"SE Glorenza",       t:"SE220", kv:220, region:"Trentino-A.A.",  prov:"BZ", lat:46.67, lng:10.55},
+  {n:"SE Villeneuve",     t:"SE220", kv:220, region:"Valle d'Aosta",  prov:"AO", lat:45.70, lng:7.20},
+
+  // --- CP — Marche (provincia di Ancona = base WiseGlow) ---
+  {n:"CP Pesaro",         t:"CP", kv:132, region:"Marche", prov:"PU", lat:43.91, lng:12.90},
+  {n:"CP Fano",           t:"CP", kv:132, region:"Marche", prov:"PU", lat:43.84, lng:13.02},
+  {n:"CP Urbino",         t:"CP", kv:132, region:"Marche", prov:"PU", lat:43.72, lng:12.64},
+  {n:"CP Senigallia",     t:"CP", kv:132, region:"Marche", prov:"AN", lat:43.71, lng:13.22},
+  {n:"CP Ancona Centro",  t:"CP", kv:132, region:"Marche", prov:"AN", lat:43.62, lng:13.51},
+  {n:"CP Falconara",      t:"CP", kv:132, region:"Marche", prov:"AN", lat:43.63, lng:13.39},
+  {n:"CP Jesi",           t:"CP", kv:132, region:"Marche", prov:"AN", lat:43.52, lng:13.24},
+  {n:"CP Osimo",          t:"CP", kv:132, region:"Marche", prov:"AN", lat:43.49, lng:13.48},
+  {n:"CP Polverigi",      t:"CP", kv:132, region:"Marche", prov:"AN", lat:43.53, lng:13.39, note:"Sede WiseGlow Italia"},
+  {n:"CP Macerata",       t:"CP", kv:132, region:"Marche", prov:"MC", lat:43.30, lng:13.45},
+  {n:"CP Civitanova Marche",t:"CP",kv:132, region:"Marche", prov:"MC", lat:43.30, lng:13.72},
+  {n:"CP Tolentino",      t:"CP", kv:132, region:"Marche", prov:"MC", lat:43.21, lng:13.29},
+  {n:"CP Fermo",          t:"CP", kv:132, region:"Marche", prov:"FM", lat:43.16, lng:13.72},
+  {n:"CP Porto Sant'Elpidio",t:"CP",kv:132,region:"Marche", prov:"FM", lat:43.26, lng:13.76},
+  {n:"CP Ascoli Piceno",  t:"CP", kv:132, region:"Marche", prov:"AP", lat:42.85, lng:13.58},
+  {n:"CP San Benedetto del Tronto",t:"CP",kv:132,region:"Marche",prov:"AP",lat:42.95,lng:13.88},
+
+  // --- CP — Lazio ---
+  {n:"CP Roma Aurelia",   t:"CP", kv:150, region:"Lazio", prov:"RM", lat:41.90, lng:12.42},
+  {n:"CP Roma Tiburtina", t:"CP", kv:150, region:"Lazio", prov:"RM", lat:41.91, lng:12.53},
+  {n:"CP Roma EUR",       t:"CP", kv:150, region:"Lazio", prov:"RM", lat:41.83, lng:12.47},
+  {n:"CP Roma Ostiense",  t:"CP", kv:150, region:"Lazio", prov:"RM", lat:41.86, lng:12.48},
+  {n:"CP Civitavecchia",  t:"CP", kv:150, region:"Lazio", prov:"RM", lat:42.09, lng:11.80},
+  {n:"CP Frosinone",      t:"CP", kv:150, region:"Lazio", prov:"FR", lat:41.64, lng:13.34},
+  {n:"CP Latina Centro",  t:"CP", kv:150, region:"Lazio", prov:"LT", lat:41.47, lng:12.90},
+  {n:"CP Aprilia",        t:"CP", kv:150, region:"Lazio", prov:"LT", lat:41.59, lng:12.65},
+  {n:"CP Rieti",          t:"CP", kv:150, region:"Lazio", prov:"RI", lat:42.40, lng:12.86},
+  {n:"CP Viterbo",        t:"CP", kv:150, region:"Lazio", prov:"VT", lat:42.42, lng:12.10},
+
+  // --- CP — Sardegna ---
+  {n:"CP Cagliari",       t:"CP", kv:150, region:"Sardegna", prov:"CA", lat:39.22, lng:9.12},
+  {n:"CP Sassari",        t:"CP", kv:150, region:"Sardegna", prov:"SS", lat:40.73, lng:8.56},
+  {n:"CP Olbia",          t:"CP", kv:150, region:"Sardegna", prov:"SS", lat:40.92, lng:9.50},
+  {n:"CP Nuoro",          t:"CP", kv:150, region:"Sardegna", prov:"NU", lat:40.32, lng:9.33},
+  {n:"CP Oristano",       t:"CP", kv:150, region:"Sardegna", prov:"OR", lat:39.90, lng:8.59},
+  {n:"CP Porto Torres",   t:"CP", kv:150, region:"Sardegna", prov:"SS", lat:40.84, lng:8.40},
+  {n:"CP Carbonia",       t:"CP", kv:150, region:"Sardegna", prov:"SU", lat:39.17, lng:8.52},
+
+  // --- CP — Basilicata ---
+  {n:"CP Potenza",        t:"CP", kv:150, region:"Basilicata", prov:"PZ", lat:40.64, lng:15.81},
+  {n:"CP Matera Città",   t:"CP", kv:150, region:"Basilicata", prov:"MT", lat:40.67, lng:16.60},
+  {n:"CP Melfi",          t:"CP", kv:150, region:"Basilicata", prov:"PZ", lat:41.00, lng:15.65},
+  {n:"CP Policoro",       t:"CP", kv:150, region:"Basilicata", prov:"MT", lat:40.21, lng:16.67},
+  {n:"CP Lavello",        t:"CP", kv:150, region:"Basilicata", prov:"PZ", lat:41.05, lng:15.80},
+
+  // --- CP — Sicilia (area progetto Vittoria) ---
+  {n:"CP Palermo",        t:"CP", kv:150, region:"Sicilia", prov:"PA", lat:38.12, lng:13.36},
+  {n:"CP Catania",        t:"CP", kv:150, region:"Sicilia", prov:"CT", lat:37.51, lng:15.08},
+  {n:"CP Messina",        t:"CP", kv:150, region:"Sicilia", prov:"ME", lat:38.19, lng:15.55},
+  {n:"CP Siracusa",       t:"CP", kv:150, region:"Sicilia", prov:"SR", lat:37.07, lng:15.29},
+  {n:"CP Ragusa",         t:"CP", kv:150, region:"Sicilia", prov:"RG", lat:36.93, lng:14.73},
+  {n:"CP Vittoria",       t:"CP", kv:150, region:"Sicilia", prov:"RG", lat:36.95, lng:14.53, note:"Area progetto WiseGlow — FV 4,86 MWp"},
+  {n:"CP Gela",           t:"CP", kv:150, region:"Sicilia", prov:"CL", lat:37.07, lng:14.25},
+  {n:"CP Trapani",        t:"CP", kv:150, region:"Sicilia", prov:"TP", lat:38.02, lng:12.51},
+  {n:"CP Agrigento",      t:"CP", kv:150, region:"Sicilia", prov:"AG", lat:37.31, lng:13.58},
+  {n:"CP Caltanissetta",  t:"CP", kv:150, region:"Sicilia", prov:"CL", lat:37.49, lng:14.06},
+];
+
+/* PLANTS: solar / wind / thermal / hydro / geo / bess / nuclear_x  (cat = "plant") */
+const PLANTS = [
+  {n:"FV Montalto di Castro",  t:"solar", mw:85,  region:"Lazio",          lat:42.34, lng:11.59},
+  {n:"FV Tarquinia",           t:"solar", mw:24,  region:"Lazio",          lat:42.22, lng:11.78},
+  {n:"FV Troia (Foggia)",      t:"solar", mw:103, region:"Puglia",         lat:41.36, lng:15.28},
+  {n:"FV Cellino San Marco",   t:"solar", mw:47,  region:"Puglia",         lat:40.47, lng:17.96},
+  {n:"FV Vittoria",            t:"solar", mw:4.86,region:"Sicilia",        lat:36.95, lng:14.53, note:"Progetto WiseGlow Italia — Ragusa"},
+  {n:"FV Mazara del Vallo",    t:"solar", mw:50,  region:"Sicilia",        lat:37.65, lng:12.59},
+  {n:"FV San Bellino (Rovigo)",t:"solar", mw:70,  region:"Veneto",         lat:45.06, lng:11.56},
+
+  {n:"Eolico Buddusò–Alà dei Sardi", t:"wind", mw:138, region:"Sardegna", lat:40.58, lng:9.27},
+  {n:"Eolico Monti Dauni (Troia)",   t:"wind", mw:130, region:"Puglia",   lat:41.33, lng:15.18},
+  {n:"Eolico Irpinia (Avellino)",    t:"wind", mw:110, region:"Campania", lat:41.00, lng:15.10},
+  {n:"Eolico Potenza",               t:"wind", mw:100, region:"Basilicata",lat:40.70, lng:15.90},
+  {n:"Eolico Caltavuturo",           t:"wind", mw:95,  region:"Sicilia",  lat:37.82, lng:13.90},
+  {n:"Eolico Molise (Campobasso)",   t:"wind", mw:80,  region:"Molise",   lat:41.55, lng:14.66},
+
+  {n:"Centrale Federico II (Cerano)",t:"thermal", mw:2640, region:"Puglia",         lat:40.50, lng:18.02, note:"Carbone (4×660 MW) — 2ª d'Italia; ferma dal 2024, riserva fredda fino al 2038"},
+  {n:"Torrevaldaliga Nord",          t:"thermal", mw:1980, region:"Lazio",          lat:42.11, lng:11.79, note:"Carbone (3×660 MW) — fermata nel 2025, riserva fredda fino al 2038"},
+  {n:"Centrale A. Volta (Montalto)", t:"thermal", mw:960, region:"Lazio",          lat:42.36, lng:11.61, note:"Ex multi-fuel ~3600 MW, in gran parte dismessa; nuovo OCGT a gas ~600 MW"},
+  {n:"Tavazzano e Montanaso",        t:"thermal", mw:1140, region:"Lombardia",      lat:45.33, lng:9.40,  note:"Gas"},
+  {n:"La Casella",                   t:"thermal", mw:1400, region:"Emilia-Romagna", lat:45.05, lng:9.45,  note:"Gas"},
+  {n:"Fusina (Venezia)",             t:"thermal", mw:960,  region:"Veneto",         lat:45.42, lng:12.25, note:"Carbone / gas"},
+  {n:"Sermide",                      t:"thermal", mw:1180, region:"Lombardia",      lat:45.00, lng:11.30, note:"Gas"},
+  {n:"Rossano",                      t:"thermal", mw:1470, region:"Calabria",       lat:39.60, lng:16.65, note:"Gas"},
+
+  {n:"Entracque (L. Einaudi)",t:"hydro", mw:1320, region:"Piemonte",      lat:44.25, lng:7.39, note:"Pompaggio — maggiore idro d'Italia"},
+  {n:"Edolo",                 t:"hydro", mw:1000, region:"Lombardia",     lat:46.18, lng:10.33,note:"Pompaggio"},
+  {n:"Roncovalgrande (L. Delio)",t:"hydro",mw:1000,region:"Lombardia",   lat:46.05, lng:8.80, note:"Pompaggio"},
+  {n:"Presenzano",            t:"hydro", mw:1000, region:"Campania",      lat:41.40, lng:14.10,note:"Pompaggio"},
+  {n:"Santa Massenza",        t:"hydro", mw:600,  region:"Trentino-A.A.", lat:46.05, lng:10.97},
+  {n:"Soverzene",             t:"hydro", mw:220,  region:"Veneto",        lat:46.23, lng:12.30},
+
+  {n:"Larderello",            t:"geo", mw:800, region:"Toscana", lat:43.24, lng:10.87, note:"Complesso ~34 impianti, ~800 MW; prima al mondo (1913)"},
+  {n:"Bagnore (Amiata)",      t:"geo", mw:120, region:"Toscana", lat:42.86, lng:11.61},
+  {n:"Piancastagnaio (Amiata)",t:"geo",mw:88,  region:"Toscana", lat:42.85, lng:11.69},
+  {n:"Travale-Radicondoli",   t:"geo", mw:160, region:"Toscana", lat:43.20, lng:11.05},
+
+  {n:"BESS Caltanissetta",    t:"bess", mw:250, region:"Sicilia",  lat:37.49, lng:14.06, note:"Accumulo a batterie"},
+  {n:"BESS Selargius",        t:"bess", mw:100, region:"Sardegna", lat:39.26, lng:9.16,  note:"Accumulo a batterie"},
+
+  {n:"Caorso (dismessa)",     t:"nuclear_x", mw:860, region:"Emilia-Romagna", lat:45.07, lng:9.88, note:"Nucleare chiuso dopo il referendum 1987"},
+  {n:"Trino (E. Fermi, dismessa)",t:"nuclear_x",mw:270,region:"Piemonte",     lat:45.18, lng:8.27, note:"Nucleare dismesso"},
+  {n:"Garigliano (dismessa)", t:"nuclear_x", mw:160, region:"Campania",       lat:41.26, lng:13.83,note:"Nucleare dismesso"},
+  {n:"Latina (dismessa)",     t:"nuclear_x", mw:210, region:"Lazio",          lat:41.43, lng:12.93,note:"Nucleare dismesso"},
+];
+
+/* LINES: ac380 / ac220 / hvdc / hvdc_plan  (cat = "line") */
+const LINES = [
+  {n:"Rondissone–Lacchiarella",  t:"ac380", kv:380, c:[[45.24,7.97],[45.32,9.14]]},
+  {n:"Lacchiarella–La Casella",  t:"ac380", kv:380, c:[[45.32,9.14],[45.05,9.45]]},
+  {n:"La Casella–Caorso",        t:"ac380", kv:380, c:[[45.05,9.45],[45.07,9.88]]},
+  {n:"Caorso–Martignone",        t:"ac380", kv:380, c:[[45.07,9.88],[44.52,11.16]]},
+  {n:"Martignone–Calenzano",     t:"ac380", kv:380, c:[[44.52,11.16],[43.86,11.16]]},
+  {n:"Calenzano–Suvereto",       t:"ac380", kv:380, c:[[43.86,11.16],[43.08,10.68]]},
+  {n:"Suvereto–Roma Nord",       t:"ac380", kv:380, c:[[43.08,10.68],[42.05,12.55]]},
+  {n:"Roma Nord–Roma Sud",       t:"ac380", kv:380, c:[[42.05,12.55],[41.78,12.70]]},
+  {n:"Roma Sud–Garigliano",      t:"ac380", kv:380, c:[[41.78,12.70],[41.26,13.83]]},
+  {n:"Garigliano–Montecorvino",  t:"ac380", kv:380, c:[[41.26,13.83],[40.69,14.97]]},
+  {n:"Montecorvino–Benevento",   t:"ac380", kv:380, c:[[40.69,14.97],[41.18,14.85]]},
+  {n:"Benevento–Foggia",         t:"ac380", kv:380, c:[[41.18,14.85],[41.46,15.55]]},
+  {n:"Foggia–Brindisi",          t:"ac380", kv:380, c:[[41.46,15.55],[40.50,18.02]]},
+  {n:"Foggia–Matera",            t:"ac380", kv:380, c:[[41.46,15.55],[40.66,16.60]]},
+  {n:"Matera–Taranto",           t:"ac380", kv:380, c:[[40.66,16.60],[40.52,17.25]]},
+  {n:"Matera–Rossano",           t:"ac380", kv:380, c:[[40.66,16.60],[39.60,16.65]]},
+  {n:"Rossano–Feroleto",         t:"ac380", kv:380, c:[[39.60,16.65],[38.97,16.39]]},
+  {n:"Feroleto–Rizziconi",       t:"ac380", kv:380, c:[[38.97,16.39],[38.41,15.96]]},
+  {n:"Sorgente–Rizziconi (Stretto)",t:"ac380",kv:380,c:[[38.18,15.40],[38.41,15.96]]},
+  {n:"Sorgente–Paternò",         t:"ac380", kv:380, c:[[38.18,15.40],[37.57,14.90]]},
+  {n:"Paternò–Chiaramonte Gulfi",t:"ac380", kv:380, c:[[37.57,14.90],[37.03,14.70]]},
+  {n:"Vado Ligure–Rondissone",   t:"ac220", kv:220, c:[[44.27,8.43],[45.24,7.97]]},
+  {n:"Bussolengo–Sandrigo",      t:"ac220", kv:220, c:[[45.47,10.85],[45.66,11.58]]},
+
+  {n:"HVDC SAPEI (Sardegna–Lazio)", t:"hvdc", kv:500, c:[[40.65,8.70],[40.30,9.55],[41.43,12.93]], note:"500 kV DC sottomarino, 1000 MW"},
+  {n:"HVDC SACOI (Sardegna–Corsica–Toscana)",t:"hvdc",kv:200,c:[[40.65,8.70],[42.00,9.40],[43.08,10.68]], note:"Collegamento tripolo"},
+  {n:"HVDC Italia–Montenegro",   t:"hvdc", kv:500, c:[[42.34,14.13],[42.05,16.10],[42.40,18.70]], note:"Cepagatti–Lastva, 600 MW"},
+  {n:"HVDC Italia–Grecia (GRITA)",t:"hvdc",kv:400, c:[[40.17,18.13],[39.65,19.60],[39.15,20.98]], note:"Galatina–Arachthos, 500 MW"},
+  {n:"HVDC Italia–Francia",      t:"hvdc", kv:320, c:[[44.99,7.42],[45.13,6.85]], note:"Piossasco–Grand'Île, 1200 MW"},
+
+  {n:"Tyrrhenian Link (previsto)", t:"hvdc_plan", kv:500, c:[[39.26,9.16],[37.98,13.70],[40.69,14.97]], note:"Sardegna–Sicilia–Campania, in costruzione"},
+  {n:"Adriatic Link (previsto)",   t:"hvdc_plan", kv:500, c:[[42.34,14.13],[43.62,13.51],[44.52,11.43]], note:"Abruzzo–Marche–Emilia-Romagna"},
+];
+
+/* ====================== CONFIG ====================== */
+const SUB_TYPES = {
+  SE380:{label:"SE 380 kV 站", color:"#ff5252", r:7},
+  SE220:{label:"SE 220 kV 站", color:"#ffab40", r:6},
+  CP:   {label:"Cabina Primaria 一次变电所", color:"#ffd740", r:4},
+};
+const PLANT_TYPES = {
+  solar:    {label:"光伏 Fotovoltaico", color:"#ffee58"},
+  wind:     {label:"风电 Eolico",       color:"#69f0ae"},
+  thermal:  {label:"火电 Termoelettrico",color:"#ff8a65"},
+  hydro:    {label:"水电 Idroelettrico", color:"#40c4ff"},
+  geo:      {label:"地热 Geotermico",    color:"#b388ff"},
+  bess:     {label:"储能 Accumulo BESS", color:"#ff80ab"},
+  nuclear_x:{label:"核电(已退役) Nucleare dismesso", color:"#b0bec5"},
+};
+const LINE_TYPES = {
+  ac380:    {label:"380 kV 交流",  color:"#ff5252", weight:3, dash:null},
+  ac220:    {label:"220 kV 交流",  color:"#ffab40", weight:2, dash:null},
+  hvdc:     {label:"HVDC 直流(运行)",color:"#00e5ff", weight:3, dash:null},
+  hvdc_plan:{label:"HVDC 直流(规划)",color:"#00e5ff", weight:3, dash:"6 6"},
+};
+
+const REGION_BOUNDS = {
+  "Italia":     [[36.6,6.6],[47.1,18.5]],
+  "Lazio":      [[40.8,11.4],[42.8,14.0]],
+  "Marche":     [[42.7,12.2],[44.0,13.95]],
+  "Sardegna":   [[38.8,8.1],[41.3,9.9]],
+  "Basilicata": [[39.9,15.3],[41.2,16.9]],
+  "Sicilia":    [[36.6,12.4],[38.4,15.7]],
+  "Piemonte":   [[44.0,6.6],[46.5,9.2]],
+  "Lombardia":  [[44.7,8.5],[46.6,11.4]],
+  "Veneto":     [[44.8,10.6],[46.7,13.1]],
+  "Toscana":    [[42.2,9.7],[44.5,12.4]],
+  "Campania":   [[39.9,13.8],[41.5,15.8]],
+  "Puglia":     [[39.8,14.9],[42.2,18.5]],
+  "Calabria":   [[37.9,15.6],[40.1,17.2]],
+  "Emilia-Romagna":[[43.7,9.2],[45.1,12.8]],
+};
+
+/* ====================== MAP ====================== */
+const map = L.map("map",{zoomControl:true}).setView([42.2,12.5],6);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
+  attribution:'&copy; OpenStreetMap &copy; CARTO · dati indicativi',
+  subdomains:"abcd", maxZoom:18
+}).addTo(map);
+map.createPane("linePane").style.zIndex = 410;
+map.createPane("subPane").style.zIndex  = 430;
+map.createPane("plantPane").style.zIndex= 440;
+
+const state = {};
+Object.keys(SUB_TYPES).forEach(k=>state[k]=true);
+Object.keys(PLANT_TYPES).forEach(k=>state[k]=true);
+state.nuclear_x = false;            // dismesse: spente di default
+Object.keys(LINE_TYPES).forEach(k=>state[k]=true);
+let regionFilter = "Italia";
+let search = "";
+
+const features = [];   // {key, cat, region, name, layer, latlng}
+
+function plantRadius(mw){ return Math.max(4, Math.min(16, 3 + Math.sqrt(mw)*0.5)); }
+
+// Substation markers
+SUBSTATIONS.forEach(s=>{
+  const cfg = SUB_TYPES[s.t];
+  const m = L.circleMarker([s.lat,s.lng],{pane:"subPane",radius:cfg.r,color:"#0e1116",weight:1,fillColor:cfg.color,fillOpacity:.92});
+  m.bindPopup(`<b>${s.n}</b><br>${cfg.label} · ${s.kv} kV<br>${s.region}${s.prov?" ("+s.prov+")":""}${s.note?"<br><i>"+s.note+"</i>":""}`);
+  features.push({key:s.t,cat:"sub",region:s.region,name:s.n.toLowerCase(),layer:m,latlng:[s.lat,s.lng]});
+});
+// Plant markers
+PLANTS.forEach(p=>{
+  const cfg = PLANT_TYPES[p.t];
+  const m = L.circleMarker([p.lat,p.lng],{pane:"plantPane",radius:plantRadius(p.mw),color:"#0e1116",weight:1,fillColor:cfg.color,fillOpacity:.9});
+  m.bindPopup(`<b>${p.n}</b><br>${cfg.label} · ${p.mw} MW<br>${p.region}${p.note?"<br><i>"+p.note+"</i>":""}`);
+  features.push({key:p.t,cat:"plant",region:p.region,name:p.n.toLowerCase(),layer:m,latlng:[p.lat,p.lng]});
+});
+// Line polylines
+LINES.forEach(l=>{
+  const cfg = LINE_TYPES[l.t];
+  const opt = {pane:"linePane",color:cfg.color,weight:cfg.weight,opacity:.85};
+  if(cfg.dash) opt.dashArray = cfg.dash;
+  const m = L.polyline(l.c,opt);
+  m.bindPopup(`<b>${l.n}</b><br>${cfg.label}${l.kv?" · "+l.kv+" kV":""}${l.note?"<br><i>"+l.note+"</i>":""}`);
+  features.push({key:l.t,cat:"line",region:"Nazionale",name:l.n.toLowerCase(),layer:m,latlng:l.c[0]});
+});
+
+function applyVisibility(){
+  features.forEach(f=>{
+    const layerOn = state[f.key];
+    const regionOn = (f.cat==="line") || regionFilter==="Italia" || f.region===regionFilter;
+    const searchOn = search==="" || f.name.includes(search);
+    const show = layerOn && regionOn && searchOn;
+    if(show && !map.hasLayer(f.layer)) f.layer.addTo(map);
+    else if(!show && map.hasLayer(f.layer)) map.removeLayer(f.layer);
+  });
+}
+
+/* ====================== UI ====================== */
+function counts(cat){
+  const o = {};
+  features.filter(f=>f.cat===cat).forEach(f=>{ o[f.key]=(o[f.key]||0)+1; });
+  return o;
+}
+function buildControls(cat, types, isLine){
+  const wrap = document.getElementById("ctl-"+cat);
+  const cnt = counts(cat);
+  wrap.innerHTML = "";
+  Object.keys(types).forEach(k=>{
+    const cfg = types[k];
+    const row = document.createElement("label");
+    row.className = "layer" + (state[k]?"":" off");
+    const swStyle = isLine
+      ? `class="sw line ${cfg.dash?"dash":""}" style="color:${cfg.color};background:${cfg.dash?"":cfg.color}"`
+      : `class="sw" style="background:${cfg.color}"`;
+    row.innerHTML = `<input type="checkbox" ${state[k]?"checked":""}>
+      <span ${swStyle}></span>
+      <span class="nm">${cfg.label}</span>
+      <span class="ct">${cnt[k]||0}</span>`;
+    row.querySelector("input").addEventListener("change",e=>{
+      state[k]=e.target.checked;
+      row.classList.toggle("off",!state[k]);
+      applyVisibility();
+    });
+    wrap.appendChild(row);
+  });
+}
+buildControls("sub",SUB_TYPES,false);
+buildControls("plant",PLANT_TYPES,false);
+buildControls("line",LINE_TYPES,true);
+
+// stats cards
+const totMW = PLANTS.filter(p=>p.t!=="nuclear_x").reduce((a,p)=>a+p.mw,0);
+document.getElementById("stats").innerHTML = `
+  <div class="stat"><b>${SUBSTATIONS.filter(s=>s.t!=="CP").length}</b><span>SE 高压站</span></div>
+  <div class="stat"><b>${SUBSTATIONS.filter(s=>s.t==="CP").length}</b><span>CP 一次变电所</span></div>
+  <div class="stat"><b>${PLANTS.length}</b><span>发电厂 Impianti</span></div>
+  <div class="stat"><b>${Math.round(totMW).toLocaleString("it-IT")}</b><span>MW 装机(指示)</span></div>
+  <div class="stat"><b>${LINES.length}</b><span>线路段 Linee</span></div>
+  <div class="stat"><b>5</b><span>优先大区 Regioni</span></div>`;
+
+// tabs
+document.querySelectorAll(".tabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".pane").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    document.querySelector(`.pane[data-pane="${b.dataset.tab}"]`).classList.add("active");
+  });
+});
+
+// master toggles
+document.querySelectorAll(".master-toggle").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const cat = btn.dataset.cat;
+    const keys = features.filter(f=>f.cat===cat).map(f=>f.key);
+    const uniq = [...new Set(keys)];
+    const anyOn = uniq.some(k=>state[k]);
+    uniq.forEach(k=>state[k]=!anyOn);
+    const types = cat==="sub"?SUB_TYPES:cat==="plant"?PLANT_TYPES:LINE_TYPES;
+    buildControls(cat,types,cat==="line");
+    applyVisibility();
+  });
+});
+
+// region select
+const regionSel = document.getElementById("region");
+const dataRegions = [...new Set(SUBSTATIONS.concat(PLANTS).map(x=>x.region))].sort();
+const regionList = ["Italia", ...dataRegions];
+regionSel.innerHTML = regionList.map(r=>`<option value="${r}">${r==="Italia"?"全部 Tutta Italia":r}</option>`).join("");
+regionSel.addEventListener("change",e=>{
+  regionFilter = e.target.value;
+  applyVisibility();
+  const b = REGION_BOUNDS[regionFilter];
+  if(b) map.fitBounds(b,{padding:[20,20]});
+});
+
+// search
+document.getElementById("search").addEventListener("input",e=>{
+  search = e.target.value.trim().toLowerCase();
+  applyVisibility();
+  if(search){
+    const hit = features.find(f=>f.name.includes(search) && state[f.key] && (f.cat==="line"||regionFilter==="Italia"||f.region===regionFilter));
+    if(hit){ map.panTo(hit.latlng); hit.layer.openPopup && hit.layer.openPopup(); }
+  }
+});
+
+applyVisibility();
+</script>
+</body>
+</html>
