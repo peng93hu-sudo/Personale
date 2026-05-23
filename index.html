@@ -61,6 +61,17 @@
       <div class="room-grid"></div>
       <p class="hint">Trascina un elemento dal catalogo qui dentro</p>
     </section>
+
+    <aside class="notes-panel" aria-label="Note vocali">
+      <h2>Note vocali</h2>
+      <div class="recorder">
+        <button id="record-btn" type="button">● Registra</button>
+        <span class="rec-status" id="rec-status">Pronto</span>
+      </div>
+      <div class="live-transcript" id="live-transcript" aria-live="polite"></div>
+      <ul class="note-list" id="note-list"></ul>
+      <button id="clear-notes-btn" type="button" disabled>Elimina tutte le note</button>
+    </aside>
   </main>
 
   <script src="app.js"></script>
