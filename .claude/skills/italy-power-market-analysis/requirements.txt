@@ -1,0 +1,6 @@
+# Core
+python-pptx>=1.0      # read/clone template, replace chart data
+openpyxl>=3.1         # (pulled by python-pptx for embedded workbooks)
+
+# Optional — only needed when the matching source is allowlisted
+# entsoe-py>=0.6       # ENTSO-E Transparency hourly zonal day-ahead prices
