@@ -223,9 +223,9 @@ const PLANTS = [
   {n:"Eolico Caltavuturo",           t:"wind", mw:95,  region:"Sicilia",  lat:37.82, lng:13.90},
   {n:"Eolico Molise (Campobasso)",   t:"wind", mw:80,  region:"Molise",   lat:41.55, lng:14.66},
 
-  {n:"Centrale Federico II (Cerano)",t:"thermal", mw:2640, region:"Puglia",         lat:40.50, lng:18.02, note:"Carbone — tra le maggiori d'Italia"},
-  {n:"Torrevaldaliga Nord",          t:"thermal", mw:1980, region:"Lazio",          lat:42.11, lng:11.79, note:"Carbone"},
-  {n:"Centrale A. Volta (Montalto)", t:"thermal", mw:3300, region:"Lazio",          lat:42.36, lng:11.61, note:"Gas CCGT — tra i maggiori impianti d'Europa"},
+  {n:"Centrale Federico II (Cerano)",t:"thermal", mw:2640, region:"Puglia",         lat:40.50, lng:18.02, note:"Carbone (4×660 MW) — 2ª d'Italia; ferma dal 2024, riserva fredda fino al 2038"},
+  {n:"Torrevaldaliga Nord",          t:"thermal", mw:1980, region:"Lazio",          lat:42.11, lng:11.79, note:"Carbone (3×660 MW) — fermata nel 2025, riserva fredda fino al 2038"},
+  {n:"Centrale A. Volta (Montalto)", t:"thermal", mw:960, region:"Lazio",          lat:42.36, lng:11.61, note:"Ex multi-fuel ~3600 MW, in gran parte dismessa; nuovo OCGT a gas ~600 MW"},
   {n:"Tavazzano e Montanaso",        t:"thermal", mw:1140, region:"Lombardia",      lat:45.33, lng:9.40,  note:"Gas"},
   {n:"La Casella",                   t:"thermal", mw:1400, region:"Emilia-Romagna", lat:45.05, lng:9.45,  note:"Gas"},
   {n:"Fusina (Venezia)",             t:"thermal", mw:960,  region:"Veneto",         lat:45.42, lng:12.25, note:"Carbone / gas"},
@@ -239,7 +239,7 @@ const PLANTS = [
   {n:"Santa Massenza",        t:"hydro", mw:600,  region:"Trentino-A.A.", lat:46.05, lng:10.97},
   {n:"Soverzene",             t:"hydro", mw:220,  region:"Veneto",        lat:46.23, lng:12.30},
 
-  {n:"Larderello",            t:"geo", mw:595, region:"Toscana", lat:43.24, lng:10.87, note:"Prima centrale geotermica al mondo (1913)"},
+  {n:"Larderello",            t:"geo", mw:800, region:"Toscana", lat:43.24, lng:10.87, note:"Complesso ~34 impianti, ~800 MW; prima al mondo (1913)"},
   {n:"Bagnore (Amiata)",      t:"geo", mw:120, region:"Toscana", lat:42.86, lng:11.61},
   {n:"Piancastagnaio (Amiata)",t:"geo",mw:88,  region:"Toscana", lat:42.85, lng:11.69},
   {n:"Travale-Radicondoli",   t:"geo", mw:160, region:"Toscana", lat:43.20, lng:11.05},
@@ -424,7 +424,7 @@ document.getElementById("stats").innerHTML = `
   <div class="stat"><b>${SUBSTATIONS.filter(s=>s.t!=="CP").length}</b><span>SE 高压站</span></div>
   <div class="stat"><b>${SUBSTATIONS.filter(s=>s.t==="CP").length}</b><span>CP 一次变电所</span></div>
   <div class="stat"><b>${PLANTS.length}</b><span>发电厂 Impianti</span></div>
-  <div class="stat"><b>${Math.round(totMW).toLocaleString("it-IT")}</b><span>MW 在运容量</span></div>
+  <div class="stat"><b>${Math.round(totMW).toLocaleString("it-IT")}</b><span>MW 装机(指示)</span></div>
   <div class="stat"><b>${LINES.length}</b><span>线路段 Linee</span></div>
   <div class="stat"><b>5</b><span>优先大区 Regioni</span></div>`;
 
