@@ -76,6 +76,19 @@ the 5-project → zone map (Marche/Lazio/Basilicata/Sicilia/Sardegna), and BESS
 CAPEX / efficiency / MACSE / MSD assumptions. Keep these in
 `data/internal_inputs.yaml`; never invent them.
 
+**Why the data often comes up short — 3 stacked reasons (diagnose in this order):**
+1. **Allowlist.** Under the default GitHub-only network policy, sources 1–3
+   return **403**; only Ember (4) is reachable. Allowlisting their domains is
+   what unlocks zonal / hourly data — see `references/data-sources.md`.
+2. **Ember is narrow.** It carries only national **monthly** PUN (one point per
+   month) and the GitHub snapshot lags (~previous year). It can fill the
+   `PUN F0` backbone *only* — never F1/F2/F3, the 7 zones, or intraday, all of
+   which need hourly data.
+3. **Internal data is on no network.** Project-1 / BESS figures come from the
+   user, full stop.
+→ With no allowlist change, only `PUN F0` (monthly) is independently real;
+sections B–G carry template figures until a higher source is opened.
+
 ### Step 3 — Compute metrics
 
 From hourly zonal prices derive everything the deck shows:
@@ -141,6 +154,10 @@ the trigger setup, don't fake it with `sleep`.
 - ❌ Inventing market numbers when a source is blocked — fetch or ask; never
   fabricate. Mark any carried-over (un-refreshed) figure as `· 待刷新`.
 - ❌ Inventing Project-1 / BESS internals — these are user-supplied only.
+- ❌ Blending real + carried values inside one series — refresh a year only
+  when the source covers all its months; otherwise leave that year on template
+  data and tag it `· 待刷新`. Don't half-fill a line (e.g. Ember had only
+  Jan–Apr 2025, so `PUN F0 2025` must not silently mix real + template months).
 - ❌ Treating energy-charts zonal MCP as the exact PUN — PUN is the
   consumption-weighted zonal average; cross-check headline PUN with Ember/GME.
 - ❌ Forgetting to commit/push outputs before the container is reclaimed.
