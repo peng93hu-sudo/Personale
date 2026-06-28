@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光储充 业务辅助看板</title>
+<style>
+  :root{--ink:#1b2530;--muted:#5b6b7a;--line:#e3e9ef;--panel:#fff;--accent:#b06f1f;--accent2:#0b7285;
+        --cn:#0e9f6e;--it:#0b7285;--ok:#0e9f6e;--part:#c98a00;--ref:#d6453d;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",Roboto,Arial,sans-serif;color:var(--ink);background:#f6f7f5;line-height:1.62}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+  header.hero{background:radial-gradient(1000px 360px at 18% -10%,#6b4416,#241a10);color:#fff;padding:34px 0 28px}
+  .hero h1{margin:0 0 8px;font-size:26px}
+  .hero .sub{color:#e6cfa9;font-size:14.5px;max-width:780px}
+  .nav{margin-top:14px}
+  .nav a{font-size:12.5px;text-decoration:none;color:#f0e2c9;border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:5px 13px;margin-right:8px}
+  h2.sec{font-size:19px;margin:28px 0 12px;display:flex;align-items:center;gap:9px}
+  h2.sec::before{content:"";width:5px;height:20px;background:var(--accent);border-radius:3px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(20,40,60,.04)}
+  .logic{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;white-space:pre-wrap;background:#241a10;color:#f0dcb8;border-radius:12px;padding:16px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#f4efe7}
+  .ref{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent2);background:#eef4f5;border-radius:5px;padding:1px 6px;white-space:nowrap}
+  .models{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:900px){.models{grid-template-columns:1fr}}
+  .model{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;display:flex;flex-direction:column}
+  .model .top{padding:14px 16px;color:#fff}
+  .model.m1 .top{background:linear-gradient(135deg,#0e9f6e,#0b6e4f)}
+  .model.m2 .top{background:linear-gradient(135deg,#b06f1f,#7a4a12)}
+  .model.m3 .top{background:linear-gradient(135deg,#0b7285,#084b58)}
+  .model .top .code{font-size:11px;opacity:.85;font-family:ui-monospace,monospace}
+  .model .top h3{margin:4px 0 0;font-size:16px}
+  .model .geo{display:inline-block;margin-top:7px;font-size:11px;background:rgba(255,255,255,.2);border-radius:10px;padding:2px 9px}
+  .model .body{padding:14px 16px;font-size:13px;flex:1}
+  .model .body b.lbl{color:var(--accent);font-size:12px}
+  .model .row{margin:7px 0}
+  .model .risk{margin-top:9px;font-size:12px;color:var(--ref);background:#fdecea;border-radius:7px;padding:7px 9px}
+  .flow{font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre;overflow-x:auto;background:#0f1720;color:#cfe6e2;border-radius:12px;padding:16px;line-height:1.5}
+  .kpis{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+  .kpi{flex:1;min-width:150px;border:1px solid var(--line);border-radius:12px;padding:13px 15px;background:#fff}
+  .kpi .n{font-size:21px;font-weight:700;color:var(--accent)}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:4px}
+  .warn{background:#fdf3df;border:1px solid #f0dca6;border-radius:10px;padding:12px 14px;font-size:13px;color:#7a5a12;margin-top:12px}
+  .daily td:first-child{font-weight:600;white-space:nowrap}
+  .pillrow{margin-top:8px}
+  .pill{display:inline-block;font-size:11.5px;background:#f1ede6;color:#6b4416;border-radius:10px;padding:3px 9px;margin:3px 4px 0 0}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:32px 20px}
+  .note{font-size:12px;color:var(--muted);margin-top:8px}
+  @media print{.nav,.printbtn{display:none}body{background:#fff}.model,.panel{box-shadow:none;page-break-inside:avoid}header.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  .printbtn{background:var(--accent2);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-size:12.5px;cursor:pointer;margin-left:8px}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <h1>💼 光储充 业务辅助看板</h1>
+    <div class="sub">业务线 PM-B 产出。把调研结论变成"找货 → 找客户 → 设计中间流程 → 算得过账"的成交闭环。成果物即产品本身——可拿去执行的成交方案。每条数字挂调研来源 <span class="ref">[Fx.y]/[S-xxx]</span>,每次更新过红军。</div>
+    <div class="nav">
+      <a href="index.html">🗼 控制塔</a><a href="research.html">🔬 调研报告</a>
+      <button class="printbtn" onclick="window.print()">🖨 导出 PDF</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <h2 class="sec">核心逻辑</h2>
+  <div class="logic">核心逻辑:用调研结论选定"最优商业模式假设" → 源端找货 → 需求端找客户 → 设计中间成交结构 → 算账 → 红军反查 → 你拍板
+要点:源头结果(有什么货/服务) · 成交方(谁买谁卖) · 商业模式(中间怎么赚)
+分析结果:3 个候选模式 + 基线财务 + 交易结构 + 风险 + 每日可执行动作
+节奏:每天产出 1 个成果物 + 1 个可执行动作 · 决策权在你</div>
+
+  <h2 class="sec">调研给业务的"弹药"(决定能不能赚的关键事实)</h2>
+  <div class="panel">
+    <table>
+      <tr><th>事实</th><th>数值</th><th>对业务的含义</th><th>来源</th></tr>
+      <tr><td>中国强制配储取消</td><td>136号文 2025-02-09</td><td>发电侧强配需求消失,<b>独立/共享储能、用户侧套利</b>成主战场</td><td><span class="ref">F1.1 ✅</span></td></tr>
+      <tr><td>储能成本暴跌</td><td>电芯 0.26 元/Wh;2h系统中标 ~0.46 元/Wh;工商储 EPC 1.4–1.6 元/Wh</td><td>投资门槛大降,自投/EMC 更易算过账</td><td><span class="ref">F2 ✅</span></td></tr>
+      <tr><td>中国峰谷价差</td><td>32地均值 ~0.618 元/kWh;粤/浙/湘 &gt;1 元/kWh</td><td><b>价差&gt;1元/kWh 的省份 = 工商储甜区</b></td><td><span class="ref">F2 ✅</span></td></tr>
+      <tr><td>工商储经济性</td><td>价差1元/kWh 下自投 IRR 28–49%、回收4–5年</td><td>模式成立,但红军判<b>偏乐观→保守取数</b></td><td><span class="ref">F2 🟡</span></td></tr>
+      <tr><td>公共充电桩痛点</td><td>利用率普遍 &lt;7%;服务费跌至 ~0.1 元/kWh</td><td><b>纯充电不赚钱,必须叠加储能套利/光伏</b></td><td><span class="ref">F3 ✅</span></td></tr>
+      <tr><td>意大利电价高</td><td>PUN 2025 ~115 €/MWh;居民 ~0.329 €/kWh(欧盟第4高)</td><td>自发自用/CER 价值高</td><td><span class="ref">F5 ✅</span></td></tr>
+      <tr><td>意大利 CER 激励</td><td>GSE 20年激励电价 60–120 €/MWh+地理加成;PNRR 22亿€、&lt;5万人镇 40% 资本补贴</td><td><b>CER 是补贴驱动的确定性收益</b></td><td><span class="ref">F4 ✅</span></td></tr>
+      <tr><td>意大利 Transizione 5.0</td><td>自发自用 PV+储能税收抵免;储能合格成本上限 900 €/kWh</td><td>工商业自投回报被补贴抬升</td><td><span class="ref">F4 ✅</span></td></tr>
+      <tr><td>意大利储能容量市场 MACSE</td><td>首拍均价 12,959 €/MW/年、10GWh、15年合同、2028交付</td><td>大储有 <b>15年长约"底薪"</b>,可叠加套利</td><td><span class="ref">F6 ✅</span></td></tr>
+    </table>
+    <p class="note">一句话:<b>中国靠"价差套利 + 成本下降",意大利靠"高电价 + 补贴/容量长约"</b>——两地都成立,赚钱路径不同。✅=红军已证实 / 🟡=部分支持(需保守取数)。</p>
+  </div>
+
+  <h2 class="sec">三个候选商业模式假设(待你拍板选 1–2 个实跑)</h2>
+  <div class="models">
+    <div class="model m1">
+      <div class="top"><div class="code">M1</div><h3>光储充检一体化站</h3><span class="geo">中国 · 自投/EMC</span></div>
+      <div class="body">
+        <div class="row"><b class="lbl">源头(货):</b>储能系统(0.46元/Wh)、PCS、超充桩(≥250kW)、光伏、EPC</div>
+        <div class="row"><b class="lbl">成交方:</b>工商业园区、物流/客运场站、充电运营商、高速服务区</div>
+        <div class="row"><b class="lbl">中间怎么赚:</b>①峰谷套利 ②充电服务费 ③光伏自发自用 ④设备集成差价 ⑤(未来)V2G/VPP聚合</div>
+        <div class="row"><b class="lbl">参数:</b>站容量·储能时长·所在省价差·利用率</div>
+        <div class="risk">⚠ 纯充电利用率&lt;7%(靠储能套利兜底)·电网接入·储能安全</div>
+      </div>
+    </div>
+    <div class="model m2">
+      <div class="top"><div class="code">M2</div><h3>工商业储能 EMC</h3><span class="geo">中国 · 合同能源管理</span></div>
+      <div class="body">
+        <div class="row"><b class="lbl">源头(货):</b>储能系统 + 智能运维(轻资产)</div>
+        <div class="row"><b class="lbl">成交方:</b>价差&gt;1元/kWh 省份(粤/浙/湘)高耗能工商业</div>
+        <div class="row"><b class="lbl">中间怎么赚:</b>业主零/轻投,运营方分享套利收益(典型 9:1~8:2),靠规模复制</div>
+        <div class="row"><b class="lbl">参数:</b>业主负荷曲线·可装容量·价差·分成比例·循环寿命</div>
+        <div class="risk">⚠ 价差收窄(2025 -9.1%)·业主信用·电池衰减</div>
+      </div>
+    </div>
+    <div class="model m3">
+      <div class="top"><div class="code">M3</div><h3>CER + 户用/工商储</h3><span class="geo">意大利</span></div>
+      <div class="body">
+        <div class="row"><b class="lbl">源头(货/服务):</b>PV+storage 设备(储能受900€/kWh上限)+ CER 运营服务</div>
+        <div class="row"><b class="lbl">成交方:</b>&lt;5万人市镇、社区、中小企业、住宅业主</div>
+        <div class="row"><b class="lbl">中间怎么赚:</b>①设备/EPC ②CER运营服务费(组织/计量/GSE申报) ③20年激励电价分成+40%资本补贴落地服务</div>
+        <div class="row"><b class="lbl">参数:</b>社区规模·自消费比例·装机分档·地理加成区</div>
+        <div class="risk">⚠ 官僚审批·Terna并网排队·补贴窗口(封顶5GW、截止2027/12)</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sec">基线交易结构(以 M2 工商储 EMC 为例,最易落地)</h2>
+  <div class="flow">   设备源(B1)            运营平台(我方)              客户(B2,工商业主)
+ ┌───────────┐   采购    ┌────────────────┐  零投资装储能 ┌────────────┐
+ │ 电芯/系统  │ ───────► │ 集成+EPC+运维   │ ───────────► │ 用电企业    │
+ │ 0.46元/Wh │          │ 资金/EMC合同     │ ◄─────────── │ 提供场地/负荷│
+ └───────────┘          └────────┬───────┘   套利收益分成  └────────────┘
+                                  │ 9:1~8:2
+                          峰充谷放赚价差(>1元/kWh省份)</div>
+  <p class="note">谁出钱:运营平台(或融资租赁)· 谁运营:平台 · 谁分钱:业主拿10–20%电费节省,平台拿大头套利。利润点=设备采购差价+套利分成+规模化运维。风险分配:设备质保→厂商;运营→平台;用电波动→合同设保底。</p>
+
+  <h2 class="sec">基线财务测算骨架(B4 待实跑;此处为口径,非承诺)</h2>
+  <div class="panel">
+    <table>
+      <tr><th>参数</th><th>中国工商储(M2)</th><th>意大利 CER(M3)</th></tr>
+      <tr><td>单位投资</td><td>EPC ~1.4–1.6 元/Wh <span class="ref">F2</span></td><td>设备+安装(储能受 900€/kWh 上限)</td></tr>
+      <tr><td>主要收入</td><td>峰谷套利(价差×循环×效率)</td><td>激励电价 + 自消费省电 + 资本补贴</td></tr>
+      <tr><td>基准 IRR(保守)</td><td>红军提示自投28–49%偏乐观 → 尽调按 <b>12–18%</b> 做基准</td><td>40%补贴 + 20年电价显著抬升</td></tr>
+      <tr><td>回收期</td><td>4–6 年</td><td>补贴到位下更短</td></tr>
+      <tr><td>敏感性必做</td><td>价差↓ / 利用率↓ / 循环衰减</td><td>补贴退坡 / 审批延迟 / 并网排队</td></tr>
+    </table>
+    <div class="warn">🛡 <b>红军已警示:</b>调研里的高 IRR(28–49%)为乐观情景,业务测算<b>必须</b>给乐观/基准/悲观三档,并以基准做决策。</div>
+  </div>
+
+  <h2 class="sec">找"成交方"的路径(B1/B2 实跑指引)</h2>
+  <div class="panel">
+    <p style="font-size:13.5px;margin:0 0 8px"><b>B1 货源:</b>从电芯/系统集成商、超充桩厂商、EPC、(意大利)本地安装商与 GSE 申报服务商定位可获取供给,记录单价/账期/资质/交期。</p>
+    <p style="font-size:13.5px;margin:0"><b>B2 客户:</b></p>
+    <div class="pillrow">
+      <span class="pill">中国:价差&gt;1元/kWh 省份高耗能工商业</span><span class="pill">园区</span><span class="pill">充电运营商</span><span class="pill">高速服务区</span>
+    </div>
+    <div class="pillrow">
+      <span class="pill">意大利:&lt;5万人市镇政府</span><span class="pill">能源社区发起方</span><span class="pill">中小企业</span><span class="pill">住宅集群</span>
+    </div>
+    <p class="note">🛡 触达不虚构:B2 只产出"可触达画像+路径",<b>具体客户名单与报价由你确认后再推进</b>(红军合规红线)。</p>
+  </div>
+
+  <h2 class="sec">每日成果物与可执行动作(示例排程)</h2>
+  <div class="panel">
+    <table class="daily">
+      <tr><th>日期</th><th>成果物</th><th>可执行动作</th></tr>
+      <tr><td>Day 1</td><td>本框架 + 三模式 + 基线测算</td><td>你选定主攻模式(M1/M2/M3)与地域</td></tr>
+      <tr><td>Day 2</td><td>M2 货源清单 v0(电芯/系统报价区间)</td><td>向 3 类系统集成商询 2h 工商储 EPC 报价</td></tr>
+      <tr><td>Day 3</td><td>M2 客户画像 v0(目标省份+行业)</td><td>锁定 1 个价差&gt;1元/kWh 省份做样板测算</td></tr>
+      <tr><td>…</td><td>每日至少更新一项 + 1 个动作</td><td>PM-B 派工、红军反查</td></tr>
+    </table>
+  </div>
+
+  <h2 class="sec">反喂调研的缺口(业务 → PM-R)</h2>
+  <div class="panel">
+    <ul style="font-size:13px;margin:0;padding-left:18px">
+      <li>分省工商储<b>实际</b>套利收益(扣除两充两放限制)的可核实样本;</li>
+      <li>意大利 CER <b>激励电价分档</b>与 <b>40%补贴</b>的逐条官方申报口径;</li>
+      <li>中国 V2G/虚拟电厂对单站收益的<b>可量化</b>增量(现政策多为试点)。</li>
+    </ul>
+    <p class="note">以上由 PM-R 在下周研究判断是否升级为正式维度——这就是两条产线咬合的闭环。</p>
+  </div>
+
+</div>
+<footer>光储充 Multi-Agent 系统 · 业务辅助看板 v1.0 · 2026-06-28 · 数字均挂调研来源,详见 research.html 与 research/光储充-调研报告.md · 成果物即产品</footer>
+</body>
+</html>

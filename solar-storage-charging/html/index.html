@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光储充 Multi-Agent 控制塔</title>
+<style>
+  :root{
+    --ink:#1b2530;--muted:#5b6b7a;--line:#e3e9ef;--panel:#fff;
+    --accent:#0e9f6e;--accent2:#0b7285;--cn:#0e9f6e;--it:#0b7285;
+    --ok:#0e9f6e;--part:#c98a00;--ref:#d6453d;--unv:#7a8794;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",Roboto,Arial,sans-serif;color:var(--ink);background:#f5f8fa;line-height:1.62}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+  header.hero{background:radial-gradient(1200px 400px at 20% -10%,#1c5b5a,#0f1720);color:#fff;padding:40px 0 34px}
+  .hero h1{margin:0 0 8px;font-size:28px;letter-spacing:.5px}
+  .hero .sub{color:#a8d3ce;font-size:15px;max-width:760px}
+  .hero .pill{display:inline-block;margin-top:14px;margin-right:8px;font-size:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:5px 12px;color:#d7e6e4}
+  h2.sec{font-size:19px;margin:30px 0 12px;display:flex;align-items:center;gap:9px}
+  h2.sec::before{content:"";width:5px;height:20px;background:var(--accent);border-radius:3px;display:inline-block}
+  .cards{display:grid;gap:14px}
+  .nav3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:820px){.nav3{grid-template-columns:1fr}}
+  .navcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;text-decoration:none;color:inherit;display:block;box-shadow:0 1px 3px rgba(20,40,60,.05);transition:transform .12s,box-shadow .12s}
+  .navcard:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(20,40,60,.1)}
+  .navcard .ic{font-size:26px}
+  .navcard h3{margin:8px 0 4px;font-size:17px}
+  .navcard p{margin:0;color:var(--muted);font-size:13.5px}
+  .navcard .go{margin-top:10px;color:var(--accent2);font-weight:600;font-size:13px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(20,40,60,.04)}
+  .scorecard{display:flex;flex-wrap:wrap;gap:12px}
+  .score{flex:1;min-width:130px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .score .n{font-size:28px;font-weight:700;line-height:1}
+  .score .l{font-size:12px;color:var(--muted);margin-top:5px}
+  .score.ok .n{color:var(--ok)}.score.part .n{color:var(--part)}.score.ref .n{color:var(--ref)}.score.unv .n{color:var(--unv)}
+  .bar{height:9px;border-radius:6px;overflow:hidden;display:flex;margin-top:8px}
+  .bar i{display:block;height:100%}
+  /* flow diagram */
+  .flow{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;white-space:pre;overflow-x:auto;background:#0f1720;color:#cfe6e2;border-radius:12px;padding:18px 16px;line-height:1.5}
+  /* agent roster */
+  .roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px}
+  .agent{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff;border-top:3px solid var(--accent)}
+  .agent.pm{border-top-color:#1c5b5a;background:#f3f8f7}
+  .agent.r{border-top-color:var(--cn)}
+  .agent.b{border-top-color:#b06f1f}
+  .agent.q{border-top-color:var(--ref)}
+  .agent .code{font-family:ui-monospace,monospace;font-size:11px;color:#fff;background:var(--accent2);border-radius:5px;padding:2px 7px}
+  .agent.pm .code{background:#1c5b5a}.agent.b .code{background:#b06f1f}.agent.q .code{background:var(--ref)}
+  .agent h4{margin:9px 0 4px;font-size:15px}
+  .agent .id{font-size:12px;color:var(--accent2);font-weight:600}
+  .agent ul{margin:7px 0 0;padding-left:16px;font-size:12.5px;color:#44515e}
+  .agent ul li{margin:2px 0}
+  .agent .param{margin-top:8px;font-size:11.5px;color:var(--muted);background:#f6f8fa;border-radius:6px;padding:6px 8px}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:820px){.twocol{grid-template-columns:1fr}}
+  .logic{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fff}
+  .logic h3{margin:0 0 8px;font-size:16px;display:flex;align-items:center;gap:8px}
+  .logic .badge{font-size:11px;color:#fff;border-radius:10px;padding:2px 9px}
+  .logic.research .badge{background:var(--cn)}.logic.biz .badge{background:#b06f1f}
+  .logic ol{margin:6px 0 0;padding-left:18px;font-size:13px;color:#3a4753}
+  .logic .out{margin-top:10px;font-size:12.5px;background:#f6f8fa;border-radius:7px;padding:8px 10px;color:#44515e}
+  table.cad{width:100%;border-collapse:collapse;font-size:13px}
+  table.cad th,table.cad td{border:1px solid var(--line);padding:9px 11px;text-align:left}
+  table.cad th{background:#f0f6f4}
+  .knobs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:820px){.knobs{grid-template-columns:1fr}}
+  .knob{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
+  .knob .t{font-weight:700;font-size:14px;color:var(--accent2)}
+  .knob p{margin:6px 0 0;font-size:12.5px;color:#44515e}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:34px 20px}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+  .t-ok{background:#e7f6ef;color:var(--ok)}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <h1>⚡ 光储充 Multi-Agent 控制塔</h1>
+    <div class="sub">光伏 PV + 储能 Storage + 电动汽车充电 Charging 一体化场景 · 中国/意大利市场调研与商业落地。两个 PM(调研/业务)+ 多智能体执行 + 红军(Red Team)反查,你是项目总 PM / 最终决策人。</div>
+    <div>
+      <span class="pill">🎯 高质量信息 可查·可验证·可追溯</span>
+      <span class="pill">🛡 每次更新过红军</span>
+      <span class="pill">🎛 决策权始终在你手上</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <h2 class="sec">三张看板</h2>
+  <div class="cards nav3">
+    <a class="navcard" href="index.html"><div class="ic">🗼</div><h3>控制塔(本页)</h3><p>系统总览:智能体编制、产线核心逻辑、可信度评分、运行节奏。</p><div class="go">你在这里 ●</div></a>
+    <a class="navcard" href="research.html"><div class="ic">🔬</div><h3>调研深度报告</h3><p>中意6维度76条结论,逐条带来源[S-xxx]+置信度+红军判定,可筛选、可打印为 PDF。</p><div class="go">打开调研报告 →</div></a>
+    <a class="navcard" href="business.html"><div class="ic">💼</div><h3>业务辅助看板</h3><p>3个商业模式假设、源端货源、成交方、交易结构与基线财务,辅助你的成交决策。</p><div class="go">打开业务看板 →</div></a>
+  </div>
+
+  <h2 class="sec">研究可信度评分卡(红军反查结果)</h2>
+  <div class="panel">
+    <div class="scorecard">
+      <div class="score"><div class="n">76</div><div class="l">结论总数</div></div>
+      <div class="score ok"><div class="n">46</div><div class="l">✅ 已证实</div></div>
+      <div class="score part"><div class="n">30</div><div class="l">🟡 部分支持</div></div>
+      <div class="score ref"><div class="n">0</div><div class="l">❌ 已证伪</div></div>
+      <div class="score unv"><div class="n">0</div><div class="l">⚪ 无法核实</div></div>
+      <div class="score"><div class="n" style="color:#0b7285">61%</div><div class="l">信用评分(已证实/总数)</div>
+        <div class="bar"><i style="background:#0e9f6e;width:61%"></i><i style="background:#c98a00;width:39%"></i></div></div>
+    </div>
+    <p style="margin:14px 0 0;font-size:13px;color:#44515e">
+      <b>读法:</b>6 个调研智能体并行产出 76 条结论,6 个红军智能体独立反查(各自重新检索第二来源)——
+      <b>0 条被证伪、0 条无法核实</b>,方向稳。需打折扣的是经济性(IRR/回收期)类测算:研究员自评中等置信,红军确认偏乐观,
+      业务测算须按基准情景保守取数。覆盖 <b>124 个可追溯来源</b> · 12 个智能体 · 277 次联网检索/取证。
+    </p>
+  </div>
+
+  <h2 class="sec">系统拓扑:你 → 两个 PM → 多智能体 → 红军 → 产出</h2>
+  <div class="flow">                          ┌─────────────────────────────┐
+                          │   你 = 项目总 PM / 决策人      │  ← 改参数·定方向·拍板·验收
+                          └──────────────┬──────────────┘
+                          ┌──────────────▼──────────────┐
+                          │   A0 总控编排 Orchestrator    │  ← 调度·管上下文·管文档版本
+                          └───────┬───────────────┬──────┘
+                   ┌──────────────▼───┐       ┌───▼──────────────┐
+                   │  PM-R 调研PM      │◄─弹药─►│  PM-B 业务PM      │
+                   └───────┬──────────┘       └─────────┬────────┘
+           ┌───────────────┼───────────┐    ┌───────────┼─────────────┐
+           ▼               ▼           ▼    ▼           ▼             ▼
+         R1 政策        R2 经济性    R3 格局  B1 货源    B2 客户      B3 成交结构
+         分析师         分析师      分析师   Sourcing  Demand      Deal-Design → B4 财务
+           └───────────────┬──────────────────────────┬─────────────┘
+                  ┌─────────▼────────┐       ┌─────────▼─────────┐
+                  │ RT 红军(反查每次) │◄────►│ AR 档案(可追溯存证)│ → PUB 产出 PDF/HTML
+                  └──────────────────┘       └───────────────────┘</div>
+
+  <h2 class="sec">两条产线的核心逻辑</h2>
+  <div class="twocol">
+    <div class="logic research">
+      <h3><span class="badge">调研线 PM-R</span> 把"听说"压成"可信"</h3>
+      <div style="font-size:12.5px;color:var(--muted)">核心逻辑:多源交叉 + 红军反查</div>
+      <ol>
+        <li>拆维度(中×3 + 意×3 = 6)</li>
+        <li>并行调研(R1/R2/R3,强制带来源)</li>
+        <li>红军逐条反查(独立第二来源)</li>
+        <li>汇总 + 缺口清单 → 你调参</li>
+        <li>出 PDF 深度报告 + HTML 看板</li>
+      </ol>
+      <div class="out">要点:政策(能不能做)· 经济性(划不划算)· 格局(谁在做、怎么赚)<br>频率:<b>每周刷新</b></div>
+    </div>
+    <div class="logic biz">
+      <h3><span class="badge">业务线 PM-B</span> 把结论变成"成交闭环"</h3>
+      <div style="font-size:12.5px;color:var(--muted)">核心逻辑:选模式 → 找货 → 找客户 → 设计流程 → 算账</div>
+      <ol>
+        <li>读调研结论 → 选最优商业模式假设</li>
+        <li>B1 源端找产品/货物/服务</li>
+        <li>B2 需求端找客户/成交方</li>
+        <li>B3 设计中间交易结构 → B4 财务测算</li>
+        <li>红军反查 → 你拍板 → 出业务 HTML</li>
+      </ol>
+      <div class="out">要点:源头结果 · 成交方 · 商业模式(中间怎么赚)<br>频率:<b>每天产出 1 个成果物 + 1 个可执行动作</b></div>
+    </div>
+  </div>
+
+  <h2 class="sec">智能体编制(13 角色)</h2>
+  <div class="roster">
+    <div class="agent pm"><span class="code">0</span><div class="id">决策层</div><h4>你 · 项目总 PM</h4>
+      <ul><li>角色:方向与取舍的最终拍板人</li><li>身份:商业决策者</li><li>范畴:定目标·调参·裁决·验收·批准对外动作</li></ul>
+      <div class="param">旋钮:全系统所有参数的最终所有者</div></div>
+    <div class="agent pm"><span class="code">A0</span><div class="id">管理层</div><h4>总控编排 Orchestrator</h4>
+      <ul><li>角色:总调度</li><li>身份:调度官+文档管理员</li><li>范畴:派工·管上下文·管版本·触发周刷/日更</li></ul>
+      <div class="param">旋钮:并发度·触发时点·上下文裁剪</div></div>
+    <div class="agent pm"><span class="code">PM-R</span><div class="id">管理层</div><h4>调研 PM</h4>
+      <ul><li>角色:研究线负责人</li><li>身份:资深研究主管("没来源就不是结论")</li><li>范畴:拆维度·派题·汇总·判断是否新增主题</li></ul>
+      <div class="param">旋钮:维度集合·时间窗·中意权重·置信门槛</div></div>
+    <div class="agent pm"><span class="code">PM-B</span><div class="id">管理层</div><h4>业务 PM</h4>
+      <ul><li>角色:成交线负责人</li><li>身份:业务操盘手("算不过账的不是模式")</li><li>范畴:选模式·派工·跑闭环·日更·反喂调研</li></ul>
+      <div class="param">旋钮:模式假设·地域·客户类型·利润目标</div></div>
+    <div class="agent r"><span class="code">R1</span><div class="id">调研线</div><h4>政策与监管分析师</h4>
+      <ul><li>身份:持牌政策研究员,只认官方文号</li><li>范畴:配储/电价市场化/充电基建/容量电价/CER/MACSE</li></ul>
+      <div class="param">旋钮:时间窗·国家vs地方·已落地vs规划</div></div>
+    <div class="agent r"><span class="code">R2</span><div class="id">调研线</div><h4>市场与经济性分析师</h4>
+      <ul><li>身份:数据型分析师,给数字必给口径</li><li>范畴:装机规模·峰谷价差·单站IRR·成本曲线·PUN电价</li></ul>
+      <div class="param">旋钮:省份/地域·储能时长·电价情景·成本年份</div></div>
+    <div class="agent r"><span class="code">R3</span><div class="id">调研线</div><h4>商业模式与格局分析师</h4>
+      <ul><li>身份:竞争情报员,区分事实与PR</li><li>范畴:EMC/共享储能/光储充检/V2G/CER玩家·痛点</li></ul>
+      <div class="param">旋钮:玩家清单·模式优先级·案例颗粒度</div></div>
+    <div class="agent b"><span class="code">B1</span><div class="id">业务线</div><h4>货源 Sourcing</h4>
+      <ul><li>身份:供应链买手,只认可获取的真实供给</li><li>范畴:设备/EPC/服务定位,价格·账期·资质·交期</li></ul>
+      <div class="param">旋钮:品类·地域·单价区间·MOQ·交期</div></div>
+    <div class="agent b"><span class="code">B2</span><div class="id">业务线</div><h4>客户 Demand</h4>
+      <ul><li>身份:B2B拓客分析师,画像须可触达</li><li>范畴:买方画像·需求规模·付费意愿·触达路径</li></ul>
+      <div class="param">旋钮:客户类型·规模门槛·决策链·地域</div></div>
+    <div class="agent b"><span class="code">B3</span><div class="id">业务线</div><h4>成交结构 Deal-Design</h4>
+      <ul><li>身份:交易结构师,找中间利润点</li><li>范畴:模式/分成/合同结构·谁出钱谁运营谁分钱·风险分配</li></ul>
+      <div class="param">旋钮:模式·分成比例·风险分配·合同期</div></div>
+    <div class="agent b"><span class="code">B4</span><div class="id">业务线</div><h4>财务测算</h4>
+      <ul><li>身份:项目财务分析师,假设显性+敏感性</li><li>范畴:投资·收入·IRR·回收期·乐观/基准/悲观</li></ul>
+      <div class="param">旋钮:投资额·电价·利用率·补贴·折现率</div></div>
+    <div class="agent q"><span class="code">RT</span><div class="id">横向质控</div><h4>红军 Red Team</h4>
+      <ul><li>身份:对抗性核查员,利益无关·默认怀疑</li><li>范畴:每条结论找独立第二源·判4档·给修正值·盯合规</li></ul>
+      <div class="param">旋钮:怀疑强度·confirmed所需独立源数·合规红线</div></div>
+    <div class="agent q"><span class="code">AR</span><div class="id">横向</div><h4>档案 / 可追溯 Archivist</h4>
+      <ul><li>身份:资料管理员,保证可回溯</li><li>范畴:来源登记[S-xxx]·CHANGELOG·版本块·Git审计线</li></ul>
+      <div class="param">旋钮:来源编号规则·版本号规则·目录结构</div></div>
+    <div class="agent q"><span class="code">PUB</span><div class="id">横向</div><h4>报告产出 PDF/HTML</h4>
+      <ul><li>身份:信息设计师,逻辑可视化</li><li>范畴:控制塔/研究/业务三张HTML·红军判定着色·可打印PDF</li></ul>
+      <div class="param">旋钮:展示维度·配色/标签规则·脱敏</div></div>
+  </div>
+  <p style="font-size:12.5px;color:var(--muted);margin-top:10px">合计 <b>13 个定义角色</b>(含你 1 个决策人;纯智能体 12 个)。本期调研线由 R1/R2/R3 在"中国×意大利"各跑一遍 = 6 并行调研 + 6 红军 = 12 个一次性 worker。业务线本期交付框架+模板,待你选定模式后实跑 B1-B4。</p>
+
+  <h2 class="sec">运行节奏</h2>
+  <div class="panel">
+    <table class="cad">
+      <tr><th>产线</th><th>频率</th><th>每次必产成果物</th><th>红军</th></tr>
+      <tr><td>调研线 PM-R</td><td><b>每周 1 次</b>(可手动加刷)</td><td>研究报告 diff + 来源登记更新 + HTML</td><td>全量反查关键新增</td></tr>
+      <tr><td>业务线 PM-B</td><td><b>每天 1 次</b></td><td>当日业务 HTML + 1 个可执行动作</td><td>反查当日新增数字/渠道</td></tr>
+      <tr><td>PM 判断</td><td>每周</td><td>是否新增行业/商业模式内容的决策记录</td><td>—</td></tr>
+    </table>
+  </div>
+
+  <h2 class="sec">你的三个方向盘(决策人如何介入)</h2>
+  <div class="knobs">
+    <div class="knob"><div class="t">① 改参数</div><p>每个 Agent 都暴露"关键参数"(储能时长、目标省份、客户类型、分成比例…),改完重跑对应 Agent。</p></div>
+    <div class="knob"><div class="t">② 改方向</div><p>在 PM 层下达重点(如"这周研究意大利 MACSE"/"业务主攻光储充检"),PM 重新派工。</p></div>
+    <div class="knob"><div class="t">③ 拍板取舍</div><p>红军给出来源分歧时,由你裁决采信谁;裁决记入 CHANGELOG。红军判 refuted 你仍想用,需显式 override 留痕。</p></div>
+  </div>
+  <p style="font-size:12.5px;color:var(--muted);margin-top:10px"><b>边界:</b>智能体不替你做商业决策,只把"带证据的选项+风险+参数"摆到你面前;最终采信、对外动作(找客户/报价/签约)由你确认。</p>
+
+</div>
+
+<footer>
+  光储充 Multi-Agent 系统 · 控制塔 v1.0 · 2026-06-28 · 文档见 /docs · 研究报告见 research.html · 业务看板见 business.html<br>
+  <span class="tag t-ok">可查 · 可验证 · 可追溯</span>
+</footer>
+</body>
+</html>
